@@ -50,7 +50,7 @@
     </style>
 </head>
 <body>
-<div id ="list-page">
+<div id ="content">
 
 </div>
 
@@ -59,11 +59,12 @@
     window.onhashchange = switchToStateFromURLHash;
 
     let SPAState={};
-    const pageList = document.getElementById('list-page');
+    const content = document.getElementById('content');
     let listPage = [];
     let articles = {};
     let idArticle = 0;
-    document.getElementById('list-page').addEventListener('click', goToLink);
+    document.getElementById('content').addEventListener('click', goToLink);
+
     function  goToLink(e) {
         let link = e.target;
         if(link.id === 'linkToList'){
@@ -78,42 +79,60 @@
     }
 
     function switchToStateFromURLHash() {
-        let URLHash=window.location.hash;
+        let URLHash = window.location.hash;
 
         let stateJSON = decodeURIComponent(URLHash.substr(1));
 
-        if ( stateJSON!== "" )
-            SPAState = JSON.parse(stateJSON); // если JSON непустой, читаем из него состояние и отображаем
+        if (stateJSON !== "") {
+            SPAState = JSON.parse(stateJSON);
+        }
         else
-            SPAState= { pagename:'Main'}; // иначе показываем главную страницу
+            SPAState = {pagename: 'Main'}; // иначе показываем главную страницу
 
-        let pageHTML="";
+        let pageHTML = "";
 
 
-        switch ( SPAState.pagename ) {
+        switch (SPAState.pagename) {
             case 'Main':
-                pageHTML+="\<h1\>Энциклопедия\<\/h1\>";
-                pageHTML+="\<p id='linkToList'\>список статей здесь\<\/p\>";
-                pageList.classList.remove('flex');
+                pageHTML += "\<h1\>Энциклопедия\<\/h1\>";
+                pageHTML += "\<p id='linkToList'\>список статей здесь\<\/p\>";
+                content.classList.remove('flex');
                 break;
             case 'List':
-                pageHTML+="<h1>Оглавление</h1>";
-                    for(let i = 0;i<listPage.length;i++){
-                        pageHTML+=listPage[i];
+                if (listPage.length === 0) {
+                    listPage = JSON.parse(localStorage.getItem('list'));
                 }
-                console.log(listPage);
-                pageList.classList.remove('flex');
+                pageHTML += "<h1>Оглавление</h1>";
+                for (let i = 0; i < listPage.length; i++) {
+                    pageHTML += listPage[i];
+                }
+                content.classList.remove('flex');
                 break;
             case 'Article':
-                pageHTML += getList();
-                pageHTML+=articles[SPAState.articleId];
-                pageList.classList.add('flex');
-                break;
+                if (!articles[SPAState.articleId]) {
+                    let article = JSON.parse(localStorage.getItem('articles' + [SPAState.articleId]));
+                    pageHTML += getList();
+                    pageHTML += article;
+                    content.classList.add('flex');
+                    break;
+                }
+                else {
+                    pageHTML += getList();
+                    pageHTML += articles[SPAState.articleId];
+                    content.classList.add('flex');
+                    break;
+                }
+
         }
-        document.getElementById('list-page').innerHTML=pageHTML;
+        document.getElementById('content').innerHTML = pageHTML;
     }
 
     function getList() {
+        if(listPage.length === 0){
+            listPage = JSON.parse(localStorage.getItem('list'));
+            console.log(listPage);
+        }
+        console.log(listPage);
         let result = '<div>';
         for (let i = 0; i < listPage.length; i++) {
             for (k in listPage[i]) {
@@ -139,7 +158,7 @@
         switchToState( { pagename:'Article', articleId:id } );
     }
 
-   
+
     switchToStateFromURLHash();
 
     function goToList() {
@@ -169,6 +188,7 @@
         for(let k in obj){
             listPage.push(createListArticles(obj[k]));
         }
+         localStorage.setItem("list", JSON.stringify(listPage));
      }
 
      function createListArticles(obj){
@@ -194,6 +214,7 @@
     function reqListener2() {
         if (this.status === 200) {
            articles[idArticle] = this.responseText;
+            localStorage.setItem("articles" + idArticle, JSON.stringify(this.responseText));
             switchToArticlePage(idArticle);
         }
         else { // не 200 - значит вывести текст ошибки
@@ -201,9 +222,6 @@
         }
 
     }
-
-
-    
 </script>
 </body>
 </html>
